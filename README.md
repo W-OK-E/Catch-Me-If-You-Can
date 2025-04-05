@@ -1,2 +1,2 @@
 # Catch-Me-If-You-Can
-Helper Files for Final Task
+This Repository contains the environment files for the Final Task. Make sure you have the following packages installed: ```bash pygame```
