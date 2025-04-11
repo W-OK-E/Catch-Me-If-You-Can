@@ -15,10 +15,25 @@ class ChaseEnvironment:
         self.chaser_speed = 8
         self.target_speed = 4
         self.chaser_acceleration = 0.5
-        self.max_chaser_speed = 16
-        self.target_change_direction_threshold = 150
+        self.max_chaser_speed = 50
+        self.max_target_speed = 45
+        self.target_accleration = 0.01
+        self.target_change_direction_threshold = 50
+        self.num_obstacles = 5
+        self.max_obstacles = 20
+        self.obstacle_size = 45
+        self.obstacles = []
+
         self.chaser_positions = [[self.screen_width//2, self.screen_height//2]]
         self.reset()
+        
+    def reset_obstacles(self):
+        self.obstacles = []
+        for _ in range(self.num_obstacles):
+            x = random.randint(self.border_width + 50, self.screen_width - self.border_width - self.obstacle_size - 50)
+            y = random.randint(self.border_width + 50, self.screen_height - self.border_width - self.obstacle_size - 50)
+            self.obstacles.append(pygame.Rect(x, y, self.obstacle_size, self.obstacle_size))
+
 
     def reset(self):
         self.chaser_x = self.screen_width // 2
@@ -31,9 +46,12 @@ class ChaseEnvironment:
         self.steps = 0
         self.score = 0
         self.chaser_positions = [[self.screen_width//2, self.screen_height//2]]
+        #Uncomment the below for the Obstacles Challenge
+        # self.reset_obstacles()
         return self.get_state()
 
     def chaser_action(self, action):
+        prev_x, prev_y = self.chaser_x, self.chaser_y
         if action == 0:
             self.chaser_y -= self.chaser_speed
         elif action == 1:
@@ -46,8 +64,17 @@ class ChaseEnvironment:
             self.chaser_speed = min(self.chaser_speed + self.chaser_acceleration, self.max_chaser_speed)
         elif action == 5:
             self.chaser_speed = max(5, self.chaser_speed - self.chaser_acceleration)
+
         self.chaser_x = max(self.border_width, min(self.chaser_x, self.screen_width - self.border_width - self.chaser_size))
         self.chaser_y = max(self.border_width, min(self.chaser_y, self.screen_height - self.border_width - self.chaser_size))
+
+        # Uncomment this for the Obstacles Challenge
+        # chaser_rect = pygame.Rect(self.chaser_x, self.chaser_y, self.chaser_size, self.chaser_size)
+        # for obstacle in self.obstacles:
+        #     if chaser_rect.colliderect(obstacle):
+        #         self.chaser_x, self.chaser_y = prev_x, prev_y  # Revert movement
+        #         break
+
 
     def target_movement(self):
         self.target_x += self.target_dx
@@ -63,8 +90,8 @@ class ChaseEnvironment:
         self.target_x = max(self.border_width, min(self.target_x, self.screen_width - self.border_width - self.target_size))
         self.target_y = max(self.border_width, min(self.target_y, self.screen_height - self.border_width - self.target_size))
         if self.steps % self.target_change_direction_threshold == 0:
-            self.target_dx = random.choice([-1, 1]) * self.target_speed + random.uniform(-1, 1)
-            self.target_dy = random.choice([-1, 1]) * self.target_speed + random.uniform(-1, 1)
+            self.target_dx = random.choice([-self.target_speed, self.target_speed]) * self.target_speed + random.uniform(-1, 1)
+            self.target_dy = random.choice([-self.target_speed, self.target_speed]) * self.target_speed + random.uniform(-1, 1)
             magnitude = math.sqrt(self.target_dx**2 + self.target_dy**2)
             self.target_dx = (self.target_dx / magnitude) * self.target_speed
             self.target_dy = (self.target_dy / magnitude) * self.target_speed
@@ -122,12 +149,20 @@ class ChaseEnvironment:
         state = self.get_state()
         done = False
         if reward == 10:
+            #Uncomment the below for the Obstacles Challenge
+            # if self.score % 5 == 0:
+            #     additional = random.randint(1, 3)
+            #     self.num_obstacles = min(self.num_obstacles + additional, self.max_obstacles)
+            
+            # self.reset_obstacles()
+
             done = True
             self.target_x = random.randint(self.border_width + 100, self.screen_width - self.border_width - self.target_size - 100)
             self.target_y = random.randint(self.border_width + 100, self.screen_height - self.border_width - self.target_size - 100)
             self.target_dx = random.choice([-1, 1]) * self.target_speed
             self.target_dy = random.choice([-1, 1]) * self.target_speed
-            self.target_speed = min(self.target_speed + 0.2, 10)
+            self.target_speed = min(self.target_speed + 0.2, self.max_target_speed)
+        self.target_speed = min(self.target_speed + 0.05,self.max_target_speed)
         return state, reward, done
 
     def get_state(self):
@@ -159,8 +194,18 @@ class ChaseEnvironment:
         pygame.draw.rect(screen, (0, 0, 0), (0, 0, self.screen_width, self.screen_height), self.border_width)
         font = pygame.font.SysFont(None, 36)
         score_text = font.render(f"Score: {self.score}", True, (0, 0, 0))
+        speed_text = font.render(f'Chaser Speed: {self.chaser_speed:.1f}', True, (0, 0, 0))
+        target_speed_text = font.render(f'Target Speed: {self.target_speed:.1f}', True, (0, 0, 0))
         screen.blit(score_text, (20, 20))
+        screen.blit(speed_text, (20, 50))
+        screen.blit(target_speed_text, (20, 80))
+        #Uncomment the below for the Obstacles Challenge
+        # for obstacle in self.obstacles:
+        #     pygame.draw.rect(screen, (100, 100, 100), obstacle)
+
         pygame.display.flip()
+
+
 
     def close_window(self):
         pygame.quit()
